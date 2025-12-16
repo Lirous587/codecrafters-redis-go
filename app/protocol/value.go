@@ -23,3 +23,14 @@ func (v *Value) SetStr(str string) *Value {
 	v.str = str
 	return v
 }
+
+func (v *Value) SetError(err string) *Value {
+	v.typ = TERROR
+	v.str = err
+	return v
+}
+
+func (v *Value) SetNull() *Value {
+	v.typ = TNULL
+	return v
+}

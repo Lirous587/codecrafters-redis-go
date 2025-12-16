@@ -63,12 +63,12 @@ func handleConnection(conn net.Conn) {
 
 		// 获取命令参数
 		args := value.Array()[1:]
-		log.Printf("args: %+v", args)
 
-		response, _ := command.Handle(cmd, args)
-		// if err != nil {
-		// 	return
-		// }
+		response, err := command.Handle(cmd, args)
+		if err != nil {
+			// 将错误返回为 RESP 错误回复，避免 nil 传入 Writer
+			response = new(protocol.Value).SetError(fmt.Sprintf("ERR %v", err)) // 或 SetError，如果你实现了
+		}
 
 		writer.Write(response)
 		log.Printf("resp: %+v", *response)
