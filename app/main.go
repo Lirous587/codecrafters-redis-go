@@ -39,7 +39,19 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error reading:", err.Error())
 			break
 		}
-		fmt.Printf("Received: %s\n", string(buf[:n]))
-		conn.Write([]byte("+PONG\r\n"))
+		// fmt.Printf("Received: %s\n", string(buf[:n]))
+		received := string(buf[:n])
+
+		// conn.Write([]byte("+PONG\r\n"))
 	}
+}
+
+type command string
+
+func commandMapper(com string) (command, error) {
+	
+}
+
+func handleEcho(coon net.Conn) {
+
 }

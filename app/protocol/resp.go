@@ -21,6 +21,15 @@ const (
 	ARRAY   = '*'
 )
 
+// 定义类型常量
+const (
+	TARRAY  = "array"
+	TBULK   = "bulk"
+	TSTRING = "string"
+	TNULL   = "null"
+	TERROR  = "error"
+)
+
 type Value struct {
 	typ   string
 	str   string
@@ -90,13 +99,13 @@ func (r *Resp) Read() (*Value, error) {
 	case ARRAY:
 		return r.readArray()
 	default:
-		return &Value{}, errors.New("无效的操作运算")
+		return &Value{}, errors.New("无效的运算操作")
 	}
 }
 
 func (r *Resp) readString() (*Value, error) {
 	v := new(Value)
-	v.typ = "string"
+	v.typ = TSTRING
 	line, _, err := r.readLine()
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -108,7 +117,7 @@ func (r *Resp) readString() (*Value, error) {
 // $<length>\r\n<data>\r\n
 func (r *Resp) readBulk() (*Value, error) {
 	v := new(Value)
-	v.typ = "bulk"
+	v.typ = TBULK
 
 	len, err := r.readLength()
 	if err != nil {
@@ -130,7 +139,7 @@ func (r *Resp) readBulk() (*Value, error) {
 // *2\r\n$5\r\nhello\r\n$5\r\nworld\r\n
 func (r *Resp) readArray() (*Value, error) {
 	v := new(Value)
-	v.typ = "array"
+	v.typ = TARRAY
 
 	// 获取array长度
 	len, err := r.readLength()
@@ -148,4 +157,87 @@ func (r *Resp) readArray() (*Value, error) {
 	}
 
 	return v, nil
+}
+
+// Marshal 将Value结构体转为resp格式 用于客户端响应
+func (v *Value) Marshal() []byte {
+	switch v.typ {
+	case TARRAY:
+		return v.marshalArray()
+	case TBULK:
+		return v.marshalBulk()
+	case TSTRING:
+		return v.marshalString()
+	case TNULL:
+		return v.marshalNull()
+	case TERROR:
+		return v.marshalError()
+	default:
+		return nil
+	}
+}
+
+// *<number-of-elements>\r\n<element-1>...<element-n>
+func (v *Value) marshalArray() []byte {
+	var bytes []byte
+	bytes = append(bytes, ARRAY)
+	bytes = append(bytes, strconv.Itoa(len(v.array))...)
+	bytes = append(bytes, '\r', '\n')
+
+	for i := 0; i < len(v.array); i++ {
+		bytes = append(bytes, v.array[i].Marshal()...)
+	}
+	return bytes
+}
+
+// $<length>\r\n<data>\r\n
+func (v *Value) marshalBulk() []byte {
+	var bytes []byte
+	bytes = append(bytes, BULK)
+	bytes = append(bytes, '\r', '\n')
+	bytes = append(bytes, v.bulk...)
+	bytes = append(bytes, '\r', '\n')
+	return bytes
+}
+
+// +OK\r\n
+func (v *Value) marshalString() []byte {
+	var bytes []byte
+	bytes = append(bytes, STRING)
+	bytes = append(bytes, v.str...)
+	bytes = append(bytes, '\r', '\n')
+	return bytes
+}
+
+func (v *Value) marshalNull() []byte {
+	return []byte("$-1\r\n")
+}
+
+// -Error message\r\n
+func (v *Value) marshalError() []byte {
+	var bytes []byte
+	bytes = append(bytes, ERROR)
+	bytes = append(bytes, v.str...)
+	bytes = append(bytes, '\r', '\n')
+	return bytes
+}
+
+type Writer struct {
+	writer io.Writer
+}
+
+func NewWriter(w io.Writer) Writer {
+	return Writer{writer: w}
+}
+
+// Write 将Value写入
+func (w *Writer) Write(v Value) error {
+	bytes := v.Marshal()
+
+	_, err := w.writer.Write(bytes)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	
+	return nil
 }
