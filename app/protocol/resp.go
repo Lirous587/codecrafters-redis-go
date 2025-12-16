@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strconv"
 
@@ -32,10 +33,10 @@ const (
 
 type Value struct {
 	typ   string
+	array []*Value
+	bulk  string
 	str   string
 	num   int
-	bulk  string
-	array []*Value
 }
 
 type Resp struct {
@@ -99,7 +100,7 @@ func (r *Resp) Read() (*Value, error) {
 	case ARRAY:
 		return r.readArray()
 	default:
-		return &Value{}, errors.New("无效的运算操作")
+		return nil, errors.New(fmt.Sprintf("Unknown type: %v", string(typ)))
 	}
 }
 
@@ -122,6 +123,12 @@ func (r *Resp) readBulk() (*Value, error) {
 	len, err := r.readLength()
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	// 处理 Null Bulk String: $-1\r\n
+	if len == -1 {
+		v.typ = TNULL
+		return v, nil
 	}
 
 	// 手动分配一个大小等于bulk的缓冲区
@@ -194,6 +201,7 @@ func (v *Value) marshalArray() []byte {
 func (v *Value) marshalBulk() []byte {
 	var bytes []byte
 	bytes = append(bytes, BULK)
+	bytes = append(bytes, strconv.Itoa(len(v.bulk))...)
 	bytes = append(bytes, '\r', '\n')
 	bytes = append(bytes, v.bulk...)
 	bytes = append(bytes, '\r', '\n')
@@ -231,13 +239,13 @@ func NewWriter(w io.Writer) Writer {
 }
 
 // Write 将Value写入
-func (w *Writer) Write(v Value) error {
+func (w *Writer) Write(v *Value) error {
 	bytes := v.Marshal()
 
 	_, err := w.writer.Write(bytes)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	
+
 	return nil
 }

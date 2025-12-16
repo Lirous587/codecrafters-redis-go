@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 
+	"github.com/codecrafters-io/redis-starter-go/app/command"
+	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/pkg/errors"
 )
 
@@ -18,6 +20,8 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
+
+	log.Println("server start at ", l.Addr())
 
 	for {
 		conn, err := l.Accept()
@@ -32,26 +36,41 @@ func main() {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	resp := protocol.NewResp(conn)
+	writer := protocol.NewWriter(conn)
+
 	for {
-		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
+		value, err := resp.Read()
 		if err != nil {
-			fmt.Println("Error reading:", err.Error())
+			log.Println("Error reading:", err.Error())
 			break
 		}
-		// fmt.Printf("Received: %s\n", string(buf[:n]))
-		received := string(buf[:n])
 
-		// conn.Write([]byte("+PONG\r\n"))
+		// 检查是否是数组类型 (Redis 命令都是数组格式)
+		if value.Array() == nil {
+			log.Println("Invalid command format: expected array")
+			continue
+		}
+
+		// 解析命令
+		if len(value.Array()) == 0 {
+			log.Println("Empty command")
+			continue
+		}
+
+		// 获取命令
+		cmd := value.Array()[0].Bulk()
+
+		// 获取命令参数
+		args := value.Array()[1:]
+		log.Printf("args: %+v", args)
+
+		response, _ := command.Handle(cmd, args)
+		// if err != nil {
+		// 	return
+		// }
+
+		writer.Write(response)
+		log.Printf("resp: %+v", *response)
 	}
-}
-
-type command string
-
-func commandMapper(com string) (command, error) {
-	
-}
-
-func handleEcho(coon net.Conn) {
-
 }
