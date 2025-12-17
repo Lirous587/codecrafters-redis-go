@@ -16,18 +16,24 @@ const (
 	GET  command = "GET"
 )
 
-var handlers = map[command]func(args []*protocol.Value) (*protocol.Value, error){
-	PING: handlePing,
-	ECHO: handleEcho,
-	SET:  handleSet,
-	GET:  handleGet,
+type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
+
+func NewHandler() handlers {
+	store := NewKVStore()
+
+	return handlers{
+		PING: handlePing,
+		ECHO: handleEcho,
+		SET:  store.handleSet,
+		GET:  store.handleGet,
+	}
 }
 
-func Handle(cmd string, args []*protocol.Value) (*protocol.Value, error) {
+func (h handlers) Handle(cmd string, args []*protocol.Value) (*protocol.Value, error) {
 	// 规范命令
 	c := command(strings.ToUpper(cmd))
 
-	handler, ok := handlers[c]
+	handler, ok := h[c]
 	if !ok {
 		return nil, errors.New("unknown command '" + cmd + "'")
 	}
