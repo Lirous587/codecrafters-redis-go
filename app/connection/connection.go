@@ -17,16 +17,21 @@ func isNormalDisconnect(err error) bool {
 	if err == nil {
 		return false
 	}
+
+	// 1. 处理标准库定义的 EOF 和连接关闭
 	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
 		return true
 	}
-	// Windows 特有：WSAECONNRESET (10054)
-	if errors.Is(err, syscall.WSAECONNRESET) {
+
+	// 2. 使用 syscall.ECONNRESET (这是 Linux/Unix 下的连接重置)
+	// 大多数情况下，这能涵盖远程主机强制关闭的情况
+	if errors.Is(err, syscall.ECONNRESET) {
 		return true
 	}
-	// 兜底匹配（不同 Go/平台封装不一致时）
-	msg := err.Error()
-	return strings.Contains(msg, "forcibly closed by the remote host") ||
+
+	// 3. 兜底匹配：字符串检查
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "forcibly closed") ||
 		strings.Contains(msg, "connection reset by peer")
 }
 
