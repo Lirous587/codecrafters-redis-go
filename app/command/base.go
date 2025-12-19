@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/codecrafters-io/redis-starter-go/app/store"
 )
 
 type command string
@@ -19,13 +20,13 @@ const (
 type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
 
 func NewHandler() handlers {
-	store := NewKVStore()
+	store := store.NewKVStore()
 
 	return handlers{
 		PING: handlePing,
 		ECHO: handleEcho,
-		SET:  store.handleSet,
-		GET:  store.handleGet,
+		SET:  store.HandleSet,
+		GET:  store.HandleGet,
 	}
 }
 
