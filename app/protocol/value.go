@@ -24,6 +24,12 @@ func (v *Value) SetStr(str string) *Value {
 	return v
 }
 
+func (v *Value) SetInteger(integer int) *Value {
+	v.typ = TINTEGER
+	v.integer = integer
+	return v
+}
+
 func (v *Value) SetError(err string) *Value {
 	v.typ = TERROR
 	v.str = err

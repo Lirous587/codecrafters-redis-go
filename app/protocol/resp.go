@@ -24,19 +24,20 @@ const (
 
 // 定义类型常量
 const (
-	TARRAY  = "array"
-	TBULK   = "bulk"
-	TSTRING = "string"
-	TNULL   = "null"
-	TERROR  = "error"
+	TARRAY   = "array"
+	TBULK    = "bulk"
+	TSTRING  = "string"
+	TINTEGER = "integer"
+	TNULL    = "null"
+	TERROR   = "error"
 )
 
 type Value struct {
-	typ   string
-	array []*Value
-	bulk  string
-	str   string
-	num   int
+	typ     string
+	array   []*Value
+	bulk    string
+	str     string
+	integer int
 }
 
 type Resp struct {
@@ -175,6 +176,8 @@ func (v *Value) Marshal() []byte {
 		return v.marshalBulk()
 	case TSTRING:
 		return v.marshalString()
+	case TINTEGER:
+		return v.marshalInteger()
 	case TNULL:
 		return v.marshalNull()
 	case TERROR:
@@ -186,35 +189,52 @@ func (v *Value) Marshal() []byte {
 
 // *<number-of-elements>\r\n<element-1>...<element-n>
 func (v *Value) marshalArray() []byte {
-	var bytes []byte
-	bytes = append(bytes, ARRAY)
-	bytes = append(bytes, strconv.Itoa(len(v.array))...)
-	bytes = append(bytes, '\r', '\n')
+	res := make([]byte, 0, 16)
+	res = append(res, ARRAY)
+	res = append(res, strconv.Itoa(len(v.array))...)
+	res = append(res, '\r', '\n')
 
 	for i := 0; i < len(v.array); i++ {
-		bytes = append(bytes, v.array[i].Marshal()...)
+		res = append(res, v.array[i].Marshal()...)
 	}
-	return bytes
+	return res
 }
 
 // $<length>\r\n<data>\r\n
 func (v *Value) marshalBulk() []byte {
-	var bytes []byte
-	bytes = append(bytes, BULK)
-	bytes = append(bytes, strconv.Itoa(len(v.bulk))...)
-	bytes = append(bytes, '\r', '\n')
-	bytes = append(bytes, v.bulk...)
-	bytes = append(bytes, '\r', '\n')
-	return bytes
+	res := make([]byte, 0, 16)
+	res = append(res, BULK)
+	res = append(res, strconv.Itoa(len(v.bulk))...)
+	res = append(res, '\r', '\n')
+	res = append(res, v.bulk...)
+	res = append(res, '\r', '\n')
+	return res
 }
 
 // +OK\r\n
 func (v *Value) marshalString() []byte {
-	var bytes []byte
-	bytes = append(bytes, STRING)
-	bytes = append(bytes, v.str...)
-	bytes = append(bytes, '\r', '\n')
-	return bytes
+	res := make([]byte, 0, 16)
+	res = append(res, STRING)
+	res = append(res, v.str...)
+	res = append(res, '\r', '\n')
+	return res
+}
+
+// :[<+|->]<value>\r\n
+func (v *Value) marshalInteger() []byte {
+	res := make([]byte, 0, 16)
+	res = append(res, INTEGER)
+
+	// 只需处理正号即可
+	if v.integer >= 0 {
+		res = append(res, '+')
+	}
+
+	// AppendInt 会自动设置负号
+	res = strconv.AppendInt(res, int64(v.integer), 10)
+	res = append(res, '\r', '\n')
+
+	return res
 }
 
 func (v *Value) marshalNull() []byte {
@@ -223,11 +243,11 @@ func (v *Value) marshalNull() []byte {
 
 // -Error message\r\n
 func (v *Value) marshalError() []byte {
-	var bytes []byte
-	bytes = append(bytes, ERROR)
-	bytes = append(bytes, v.str...)
-	bytes = append(bytes, '\r', '\n')
-	return bytes
+	res := make([]byte, 0, 16)
+	res = append(res, ERROR)
+	res = append(res, v.str...)
+	res = append(res, '\r', '\n')
+	return res
 }
 
 type Writer struct {
@@ -240,9 +260,9 @@ func NewWriter(w io.Writer) Writer {
 
 // Write 将Value写入
 func (w *Writer) Write(v *Value) error {
-	bytes := v.Marshal()
+	res := v.Marshal()
 
-	_, err := w.writer.Write(bytes)
+	_, err := w.writer.Write(res)
 	if err != nil {
 		return errors.WithStack(err)
 	}
