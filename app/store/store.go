@@ -54,8 +54,8 @@ func (s *KVStore) set(key string, value *Value) {
 // 1.没过期则返回存在
 // 2.过期则返回不存在且删除
 func (s *KVStore) get(key string) (*Value, bool) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	v, ok := s.store[key]
 
@@ -67,6 +67,7 @@ func (s *KVStore) get(key string) (*Value, bool) {
 	// 过期则顺手删除 避免交给上级去处理
 	if isExpired {
 		delete(s.store, key)
+		return nil, false
 	}
 
 	return &v, true
