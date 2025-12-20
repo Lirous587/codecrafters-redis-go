@@ -235,9 +235,18 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	// 处理负索引
+	if startArg < 0 {
+		startArg = len(list) + startArg
+	}
+
 	stopArg, err := args[2].BulkToInteger()
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+	// 处理负索引
+	if startArg < 0 {
+		startArg = len(list) + startArg
 	}
 
 	// 1.startArg 如果越过list长度则返回null
