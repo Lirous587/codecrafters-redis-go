@@ -1,12 +1,12 @@
 package store
 
 import (
-	"errors"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/pkg/errors"
 )
 
 type ValueType int8
@@ -206,17 +206,66 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 	return new(protocol.Value).SetInteger(len(list)), nil
 }
 
-// HandleLRANGE
+// HandleLRange
 // 返回存储在 key 中的列表的指定元素。偏移量 start 和 stop 是零基索引， 0 是列表的第一个元素（列表的头部）， 1 是下一个元素，以此类推。
 // 这些偏移量也可以是负数，表示从列表末尾开始的偏移量。例如， -1 是列表的最后一个元素， -2 是倒数第二个，以此类推。
-func (s *KVStore) HandleLRANGE(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) {
 	// lrange key start stop
-	// if len(args) != 3 {
-	// 	return nil, errors.New(emsgArgsNumber("lrange"))
+	if len(args) != 3 {
+		return nil, errors.New(emsgArgsNumber("lrange"))
+	}
+
+	key := args[0].Bulk()
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	value, ok := s.store[key]
+	if !ok {
+		return new(protocol.Value).SetNull(), nil
+	}
+
+	if value.Type != TypeList {
+		return nil, errors.New(emsgKeyType())
+	}
+
+	list := value.Data.([]string)
+
+	startArg, err := args[1].BulkToInteger()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	stopArg, err := args[2].BulkToInteger()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	// 1.startArg 如果越过list长度则返回null
+	if startArg >= len(list) {
+		return new(protocol.Value).SetNull(), nil
+	}
+
+	// 2.stopArg 如果小于 startArg 则返回null
+	if stopArg < startArg {
+		return new(protocol.Value).SetNull(), nil
+	}
+	// 3.stopArg 如果越过list长度则返回剩下数据
+	if stopArg >= len(list) {
+		stopArg = len(list) - 1
+	}
+
+	// if stopArg < 0 {
+	// 	return nil, errors.New("ERR LRANGE end can't be negative integer")
 	// }
 
-	// key := args[0].Bulk()
-	// start := args[1].Integer()
-	// end := args[2].Integer()
-	return nil, nil
+	length := stopArg - startArg + 1
+
+	resList := make([]*protocol.Value, 0, length)
+
+	// 左开右闭
+	for i := range list[startArg : stopArg+1] {
+		resList = append(resList, new(protocol.Value).SetBulk(list[startArg+i]))
+	}
+
+	return new(protocol.Value).SetArray(resList), nil
 }

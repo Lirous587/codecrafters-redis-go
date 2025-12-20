@@ -74,7 +74,7 @@ func Handle(conn net.Conn) {
 		response, err := handler.Handle(cmd, args)
 		if err != nil {
 			// 将错误返回为 RESP 错误回复，避免 nil 传入 Writer
-			response = new(protocol.Value).SetError(fmt.Sprintf("ERR %v", err)) // 或 SetError，如果你实现了
+			response = new(protocol.Value).SetError(fmt.Sprintf("ERR %v", err))
 		}
 
 		writer.Write(response)

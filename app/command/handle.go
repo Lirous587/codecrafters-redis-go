@@ -2,6 +2,7 @@ package command
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
@@ -30,7 +31,7 @@ func NewHandler() handlers {
 		SET:    store.HandleSet,
 		GET:    store.HandleGet,
 		RPUSH:  store.HandleRPush,
-		LRANGE: store.HandleLRANGE,
+		LRANGE: store.HandleLRange,
 	}
 }
 
@@ -40,7 +41,7 @@ func (h handlers) Handle(cmd string, args []*protocol.Value) (*protocol.Value, e
 
 	handler, ok := h[c]
 	if !ok {
-		return nil, errors.New("unknown command '" + cmd + "'")
+		return nil, fmt.Errorf("unknown command '%q'", cmd)
 	}
 
 	return handler(args)
