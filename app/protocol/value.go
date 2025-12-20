@@ -12,6 +12,10 @@ func (v *Value) Str() string {
 	return v.str
 }
 
+func (v *Value) Integer() int {
+	return v.integer
+}
+
 func (v *Value) SetBulk(bulk string) *Value {
 	v.typ = TBULK
 	v.bulk = bulk

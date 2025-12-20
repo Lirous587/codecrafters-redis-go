@@ -11,11 +11,12 @@ import (
 type command string
 
 const (
-	PING  command = "PING"
-	ECHO  command = "ECHO"
-	SET   command = "SET"
-	GET   command = "GET"
-	RPUSH command = "RPUSH"
+	PING   command = "PING"
+	ECHO   command = "ECHO"
+	SET    command = "SET"
+	GET    command = "GET"
+	RPUSH  command = "RPUSH"
+	LRANGE command = "LRANGE"
 )
 
 type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
@@ -24,11 +25,12 @@ func NewHandler() handlers {
 	store := store.NewKVStore()
 
 	return handlers{
-		PING:  handlePing,
-		ECHO:  handleEcho,
-		SET:   store.HandleSet,
-		GET:   store.HandleGet,
-		RPUSH: store.HandleRPush,
+		PING:   handlePing,
+		ECHO:   handleEcho,
+		SET:    store.HandleSet,
+		GET:    store.HandleGet,
+		RPUSH:  store.HandleRPush,
+		LRANGE: store.HandleLRANGE,
 	}
 }
 

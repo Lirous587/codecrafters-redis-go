@@ -23,7 +23,7 @@ type Value struct {
 }
 
 type KVStore struct {
-	store map[string]Value
+	store map[string]*Value
 	mutex sync.RWMutex
 }
 
@@ -33,7 +33,7 @@ var kvStore *KVStore
 func NewKVStore() *KVStore {
 	kvOnce.Do(func() {
 		kvStore = &KVStore{
-			store: make(map[string]Value),
+			store: make(map[string]*Value),
 		}
 
 		go func() {
@@ -44,19 +44,18 @@ func NewKVStore() *KVStore {
 	return kvStore
 }
 
-func (s *KVStore) set(key string, value *Value) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.store[key] = *value
+// ---------------------------------------------------------
+// raw 操作
+// 约定：调用这些方法前，必须已经持有相应的锁
+// ---------------------------------------------------------
+
+// rawSet 外部必须持有写锁
+func (s *KVStore) rawSet(key string, value *Value) {
+	s.store[key] = value
 }
 
-// 获取数据
-// 1.没过期则返回存在
-// 2.过期则返回不存在且删除
-func (s *KVStore) get(key string) (*Value, bool) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
+// rawGet 外部必须持有写锁
+func (s *KVStore) rawGet(key string) (*Value, bool) {
 	v, ok := s.store[key]
 
 	if !ok {
@@ -64,19 +63,27 @@ func (s *KVStore) get(key string) (*Value, bool) {
 	}
 
 	isExpired := !v.ExpiredAt.IsZero() && !v.ExpiredAt.After(time.Now())
-	// 过期则顺手删除 避免交给上级去处理
 	if isExpired {
 		delete(s.store, key)
 		return nil, false
 	}
 
-	return &v, true
+	return v, true
 }
 
-func (s *KVStore) delete(key string) {
+func (s *KVStore) Set(key string, value *Value) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	delete(s.store, key)
+	s.rawSet(key, value)
+}
+
+// get 获取数据同时内部处理过期逻辑
+// 1.没过期则返回存在
+// 2.过期则返回不存在且删除
+func (s *KVStore) Get(key string) (*Value, bool) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return s.rawGet(key)
 }
 
 func (s *KVStore) handleActiveDelete() {
@@ -130,7 +137,7 @@ func (s *KVStore) HandleSet(args []*protocol.Value) (*protocol.Value, error) {
 		}
 	}
 
-	s.set(key, &Value{
+	s.Set(key, &Value{
 		Type:      TypeString,
 		ExpiredAt: expAt,
 		Data:      value,
@@ -146,7 +153,7 @@ func (s *KVStore) HandleGet(args []*protocol.Value) (*protocol.Value, error) {
 
 	key := args[0].Bulk()
 
-	value, exist := s.get(key)
+	value, exist := s.Get(key)
 
 	if !exist {
 		return new(protocol.Value).SetNull(), nil
@@ -169,14 +176,13 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 		return nil, errors.New(emsgArgsNumber("rpush"))
 	}
 
-	key := args[0].Bulk()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-	s.mutex.RLock()
+	key := args[0].Bulk()
 	value, exist := s.store[key]
-	s.mutex.RUnlock()
 
 	var list []string
-
 	if exist {
 		if value.Type != TypeList {
 			return nil, errors.New(emsgKeyType())
@@ -190,7 +196,7 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 		list = append(list, args[1+i].Bulk())
 	}
 
-	s.set(key, &Value{
+	s.rawSet(key, &Value{
 		Type: TypeList,
 		// TODO
 		// ExpiredAt: ,
@@ -198,4 +204,19 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 	})
 
 	return new(protocol.Value).SetInteger(len(list)), nil
+}
+
+// HandleLRANGE
+// 返回存储在 key 中的列表的指定元素。偏移量 start 和 stop 是零基索引， 0 是列表的第一个元素（列表的头部）， 1 是下一个元素，以此类推。
+// 这些偏移量也可以是负数，表示从列表末尾开始的偏移量。例如， -1 是列表的最后一个元素， -2 是倒数第二个，以此类推。
+func (s *KVStore) HandleLRANGE(args []*protocol.Value) (*protocol.Value, error) {
+	// lrange key start stop
+	// if len(args) != 3 {
+	// 	return nil, errors.New(emsgArgsNumber("lrange"))
+	// }
+
+	// key := args[0].Bulk()
+	// start := args[1].Integer()
+	// end := args[2].Integer()
+	return nil, nil
 }
