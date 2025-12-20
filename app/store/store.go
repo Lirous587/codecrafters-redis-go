@@ -168,6 +168,49 @@ func (s *KVStore) HandleGet(args []*protocol.Value) (*protocol.Value, error) {
 	return new(protocol.Value).SetBulk(str), nil
 }
 
+// HandleLPush
+// 将所有指定的值插入到存储在 key 的列表头部。如果 key 不存在，则在执行推送操作之前将其创建为空列表。当 key 包含的值不是列表时，将返回错误。
+// 可以使用单个命令调用，在命令末尾指定多个参数来推送多个元素。元素会依次插入到列表头部，从最左边的元素到最右边的元素。所以例如，命令 LPUSH mylist a b c 将会生成一个列表，其中 c 是第一个元素， b 是第二个元素， a 是第三个元素。
+func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
+	if len(args) < 2 {
+		return nil, errors.New(emsgArgsNumber("lpush"))
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	key := args[0].Bulk()
+	value, exist := s.store[key]
+
+	var list []string
+	if exist {
+		if value.Type != TypeList {
+			return nil, errors.New(emsgKeyType())
+		}
+		list = value.Data.([]string)
+	} else {
+		// list = make([]string, 0, len(args)-1)
+	}
+
+	// 先处理prepend 最后一次性合并 避免每个元素都需要在原有基础上prepend
+	prepend := make([]string, 0, len(args)-1)
+
+	for i := len(args); i > 1; i-- {
+		prepend = append(prepend, args[i-1].Bulk())
+	}
+
+	resList := append(prepend, list...)
+
+	s.rawSet(key, &Value{
+		Type: TypeList,
+		// TODO
+		// ExpiredAt: ,
+		Data: resList,
+	})
+
+	return new(protocol.Value).SetInteger(len(resList)), nil
+}
+
 // HandleRPush
 // 将所有指定的值插入到存储在 key 的列表尾部。
 // 如果 key 不存在，则在执行推送操作之前将其创建为空列表。

@@ -16,6 +16,7 @@ const (
 	ECHO   command = "ECHO"
 	SET    command = "SET"
 	GET    command = "GET"
+	LPUSH  command = "LPUSH"
 	RPUSH  command = "RPUSH"
 	LRANGE command = "LRANGE"
 )
@@ -30,6 +31,7 @@ func NewHandler() handlers {
 		ECHO:   handleEcho,
 		SET:    store.HandleSet,
 		GET:    store.HandleGet,
+		LPUSH:  store.HandleLPush,
 		RPUSH:  store.HandleRPush,
 		LRANGE: store.HandleLRange,
 	}
