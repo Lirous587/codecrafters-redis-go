@@ -60,3 +60,9 @@ func (v *Value) SetNull() *Value {
 	v.typ = TNULL
 	return v
 }
+
+func (v *Value) SetEmptyArray() *Value {
+	v.typ = TARRAY
+	v.array = nil
+	return v
+}

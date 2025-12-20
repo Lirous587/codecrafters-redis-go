@@ -242,12 +242,12 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 
 	// 1.startArg 如果越过list长度则返回null
 	if startArg >= len(list) {
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetEmptyArray(), nil
 	}
 
 	// 2.stopArg 如果小于 startArg 则返回null
 	if stopArg < startArg {
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetEmptyArray(), nil
 	}
 	// 3.stopArg 如果越过list长度则返回剩下数据
 	if stopArg >= len(list) {
