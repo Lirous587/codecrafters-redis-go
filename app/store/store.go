@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/codecrafters-io/redis-starter-go/app/utils"
 	"github.com/pkg/errors"
 )
 
@@ -235,41 +236,18 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	// 处理负索引
-	if startArg < 0 {
-		startArg = len(list) + startArg
-	}
 
 	stopArg, err := args[2].BulkToInteger()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	// 处理负索引
-	if stopArg < 0 {
-		stopArg = len(list) + stopArg
-	}
 
-	// 1.startArg 如果越过list长度则返回null
-	if startArg >= len(list) {
-		return new(protocol.Value).SetEmptyArray(), nil
-	}
+	safeStart, safeStop := utils.NormalizeRange(startArg, stopArg, len(list))
+	subList := list[safeStart:safeStop]
 
-	// 2.stopArg 如果小于 startArg 则返回null
-	if stopArg < startArg {
-		return new(protocol.Value).SetEmptyArray(), nil
-	}
-	// 3.stopArg 如果越过list长度则返回剩下数据
-	if stopArg >= len(list) {
-		stopArg = len(list) - 1
-	}
-
-	length := stopArg - startArg + 1
-
-	resList := make([]*protocol.Value, 0, length)
-
-	// 左开右闭
-	for i := range list[startArg : stopArg+1] {
-		resList = append(resList, new(protocol.Value).SetBulk(list[startArg+i]))
+	resList := make([]*protocol.Value, 0, len(subList))
+	for i := range subList {
+		resList = append(resList, new(protocol.Value).SetBulk(subList[i]))
 	}
 
 	return new(protocol.Value).SetArray(resList), nil
