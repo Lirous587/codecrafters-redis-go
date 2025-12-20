@@ -295,3 +295,27 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 
 	return new(protocol.Value).SetArray(resList), nil
 }
+
+func (s *KVStore) HandleLlen(args []*protocol.Value) (*protocol.Value, error) {
+	if len(args) != 1 {
+		return nil, errors.New(emsgArgsNumber("llen"))
+	}
+
+	key := args[0].Bulk()
+
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	value, ok := s.store[key]
+	if !ok {
+		return new(protocol.Value).SetInteger(0), nil
+	}
+
+	if value.Type != TypeList {
+		return nil, errors.New(emsgKeyType())
+	}
+
+	list := value.Data.([]string)
+
+	return new(protocol.Value).SetInteger(len(list)), nil
+}

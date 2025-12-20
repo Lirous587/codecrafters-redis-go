@@ -19,6 +19,7 @@ const (
 	LPUSH  command = "LPUSH"
 	RPUSH  command = "RPUSH"
 	LRANGE command = "LRANGE"
+	LLEN   command = "LLEN"
 )
 
 type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
@@ -34,6 +35,7 @@ func NewHandler() handlers {
 		LPUSH:  store.HandleLPush,
 		RPUSH:  store.HandleRPush,
 		LRANGE: store.HandleLRange,
+		LLEN:   store.HandleLlen,
 	}
 }
 
