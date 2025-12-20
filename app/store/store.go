@@ -222,7 +222,7 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 
 	value, ok := s.store[key]
 	if !ok {
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetEmptyArray(), nil
 	}
 
 	if value.Type != TypeList {
@@ -253,10 +253,6 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 	if stopArg >= len(list) {
 		stopArg = len(list) - 1
 	}
-
-	// if stopArg < 0 {
-	// 	return nil, errors.New("ERR LRANGE end can't be negative integer")
-	// }
 
 	length := stopArg - startArg + 1
 
