@@ -245,8 +245,8 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 		return nil, errors.WithStack(err)
 	}
 	// 处理负索引
-	if startArg < 0 {
-		startArg = len(list) + startArg
+	if stopArg < 0 {
+		stopArg = len(list) + stopArg
 	}
 
 	// 1.startArg 如果越过list长度则返回null
