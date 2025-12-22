@@ -135,7 +135,7 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 	return new(protocol.Value).SetArray(resList), nil
 }
 
-func (s *KVStore) HandleLlen(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleLLen(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) != 1 {
 		return nil, errors.New(emsgArgsNumber("llen"))
 	}
@@ -162,7 +162,7 @@ func (s *KVStore) HandleLlen(args []*protocol.Value) (*protocol.Value, error) {
 // HandleLpop
 // 移除并返回存储在 key 中的列表的第一个元素。
 // 默认情况下，该命令从列表的开头弹出一个元素。当提供可选的 count 参数时，回复将包含最多 count 个元素，具体取决于列表的长度。
-func (s *KVStore) HandleLpop(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) != 1 && len(args) != 2 {
 		return nil, errors.New(emsgArgsNumber("lpop"))
 	}

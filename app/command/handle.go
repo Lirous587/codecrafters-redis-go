@@ -36,8 +36,8 @@ func NewHandler() handlers {
 		LPUSH:  store.HandleLPush,
 		RPUSH:  store.HandleRPush,
 		LRANGE: store.HandleLRange,
-		LLEN:   store.HandleLlen,
-		LPOP:   store.HandleLpop,
+		LLEN:   store.HandleLLen,
+		LPOP:   store.HandleLPop,
 	}
 }
 
