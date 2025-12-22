@@ -56,6 +56,7 @@ func (v *Value) SetError(err string) *Value {
 	return v
 }
 
+// SetNull: set null bulk string
 func (v *Value) SetNull() *Value {
 	v.typ = TNULL
 	return v
