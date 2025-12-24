@@ -24,6 +24,11 @@ type Entity struct {
 
 type KVStore struct {
 	store map[string]*Entity
+	// 用于 List 的阻塞等待
+	listWaiters map[string][]chan ListPayload
+	// 未来可能需要的阻塞
+	// streamWaiters map[string][]chan StreamPayload
+	// zsetWaiters   map[string][]chan ZSetPayload
 	mutex sync.RWMutex
 }
 
@@ -34,6 +39,7 @@ func NewKVStore() *KVStore {
 	kvOnce.Do(func() {
 		kvStore = &KVStore{
 			store: make(map[string]*Entity),
+			listWaiters: make(map[string][]chan ListPayload),
 		}
 
 		go func() {
