@@ -16,14 +16,14 @@ const (
 	TypeList
 )
 
-type Value struct {
+type Entity struct {
 	Type      ValueType
 	ExpiredAt time.Time
 	Data      interface{}
 }
 
 type KVStore struct {
-	store map[string]*Value
+	store map[string]*Entity
 	mutex sync.RWMutex
 }
 
@@ -33,7 +33,7 @@ var kvStore *KVStore
 func NewKVStore() *KVStore {
 	kvOnce.Do(func() {
 		kvStore = &KVStore{
-			store: make(map[string]*Value),
+			store: make(map[string]*Entity),
 		}
 
 		go func() {
@@ -50,37 +50,37 @@ func NewKVStore() *KVStore {
 // ---------------------------------------------------------
 
 // rawSet 外部必须持有写锁
-func (s *KVStore) rawSet(key string, value *Value) {
-	s.store[key] = value
+func (s *KVStore) rawSet(key string, entity *Entity) {
+	s.store[key] = entity
 }
 
 // rawGet 外部必须持有写锁
-func (s *KVStore) rawGet(key string) (*Value, bool) {
-	v, ok := s.store[key]
+func (s *KVStore) rawGet(key string) (*Entity, bool) {
+	entity, ok := s.store[key]
 
 	if !ok {
 		return nil, false
 	}
 
-	isExpired := !v.ExpiredAt.IsZero() && !v.ExpiredAt.After(time.Now())
+	isExpired := !entity.ExpiredAt.IsZero() && !entity.ExpiredAt.After(time.Now())
 	if isExpired {
 		delete(s.store, key)
 		return nil, false
 	}
 
-	return v, true
+	return entity, true
 }
 
-func (s *KVStore) Set(key string, value *Value) {
+func (s *KVStore) Set(key string, entity *Entity) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.rawSet(key, value)
+	s.rawSet(key, entity)
 }
 
 // get 获取数据同时内部处理过期逻辑
 // 1.没过期则返回存在
 // 2.过期则返回不存在且删除
-func (s *KVStore) Get(key string) (*Value, bool) {
+func (s *KVStore) Get(key string) (*Entity, bool) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.rawGet(key)
@@ -95,12 +95,12 @@ func (s *KVStore) handleActiveDelete() {
 		count := 0
 		s.mutex.Lock()
 		now := time.Now()
-		for k, v := range s.store {
+		for k, entity := range s.store {
 			if count >= hz {
 				break
 			}
 
-			if !v.ExpiredAt.IsZero() && !v.ExpiredAt.After(now) {
+			if !entity.ExpiredAt.IsZero() && !entity.ExpiredAt.After(now) {
 				delete(s.store, k)
 			}
 			count++
@@ -137,7 +137,7 @@ func (s *KVStore) HandleSet(args []*protocol.Value) (*protocol.Value, error) {
 		}
 	}
 
-	s.Set(key, &Value{
+	s.Set(key, &Entity{
 		Type:      TypeString,
 		ExpiredAt: expAt,
 		Data:      value,
@@ -153,13 +153,13 @@ func (s *KVStore) HandleGet(args []*protocol.Value) (*protocol.Value, error) {
 
 	key := args[0].Bulk()
 
-	value, exist := s.Get(key)
+	entity, exist := s.Get(key)
 
 	if !exist {
 		return new(protocol.Value).SetNull(), nil
 	}
 
-	str, ok := value.Data.(string)
+	str, ok := entity.Data.(string)
 	if !ok {
 		return new(protocol.Value).SetNull(), nil
 	}

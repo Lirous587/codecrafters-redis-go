@@ -18,14 +18,14 @@ func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
 	defer s.mutex.Unlock()
 
 	key := args[0].Bulk()
-	value, exist := s.store[key]
+	entity, exist := s.store[key]
 
 	var list []string
 	if exist {
-		if value.Type != TypeList {
+		if entity.Type != TypeList {
 			return nil, errors.New(emsgKeyType())
 		}
-		list = value.Data.([]string)
+		list = entity.Data.([]string)
 	} else {
 		// list = make([]string, 0, len(args)-1)
 	}
@@ -39,7 +39,7 @@ func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
 
 	resList := append(prepend, list...)
 
-	s.rawSet(key, &Value{
+	s.rawSet(key, &Entity{
 		Type: TypeList,
 		// TODO
 		// ExpiredAt: ,
@@ -62,14 +62,14 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 	defer s.mutex.Unlock()
 
 	key := args[0].Bulk()
-	value, exist := s.store[key]
+	entity, exist := s.store[key]
 
 	var list []string
 	if exist {
-		if value.Type != TypeList {
+		if entity.Type != TypeList {
 			return nil, errors.New(emsgKeyType())
 		}
-		list = value.Data.([]string)
+		list = entity.Data.([]string)
 	} else {
 		list = make([]string, 0, len(args)-1)
 	}
@@ -78,7 +78,7 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 		list = append(list, args[1+i].Bulk())
 	}
 
-	s.rawSet(key, &Value{
+	s.rawSet(key, &Entity{
 		Type: TypeList,
 		// TODO
 		// ExpiredAt: ,
@@ -103,16 +103,16 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	value, ok := s.store[key]
+	entity, ok := s.store[key]
 	if !ok {
 		return new(protocol.Value).SetEmptyArray(), nil
 	}
 
-	if value.Type != TypeList {
+	if entity.Type != TypeList {
 		return nil, errors.New(emsgKeyType())
 	}
 
-	list := value.Data.([]string)
+	list := entity.Data.([]string)
 
 	startArg, err := args[1].BulkToInteger()
 	if err != nil {
@@ -145,16 +145,16 @@ func (s *KVStore) HandleLLen(args []*protocol.Value) (*protocol.Value, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	value, ok := s.store[key]
+	entity, ok := s.store[key]
 	if !ok {
 		return new(protocol.Value).SetInteger(0), nil
 	}
 
-	if value.Type != TypeList {
+	if entity.Type != TypeList {
 		return nil, errors.New(emsgKeyType())
 	}
 
-	list := value.Data.([]string)
+	list := entity.Data.([]string)
 
 	return new(protocol.Value).SetInteger(len(list)), nil
 }
@@ -184,16 +184,16 @@ func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	value, ok := s.rawGet(key)
+	entity, ok := s.rawGet(key)
 	if !ok {
 		return new(protocol.Value).SetNull(), nil
 	}
 
-	if value.Type != TypeList {
+	if entity.Type != TypeList {
 		return nil, errors.New(emsgKeyType())
 	}
 
-	list := value.Data.([]string)
+	list := entity.Data.([]string)
 	length := len(list)
 
 	if length == 0 {
@@ -205,7 +205,7 @@ func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
 		if resLength == length {
 			delete(s.store, key)
 		} else {
-			s.rawSet(key, &Value{
+			s.rawSet(key, &Entity{
 				Type: TypeList,
 				Data: list[count:],
 			})
@@ -247,5 +247,12 @@ func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
 // 当 BLPOP 导致客户端阻塞且指定了非零超时时，如果超时到期前没有至少一个指定的键执行推送操作，客户端将解阻塞并返回一个 nil 多批量值。
 // 超时参数timeout被解释为一个双精度值，指定最大阻塞秒数。零超时可用于无限期阻塞。
 func (s *KVStore) HandleBLPOP(args []*protocol.Value) (*protocol.Value, error) {
+	// if args < 2 {
+	// 	return nil, errors.New(emsgArgsNumber("blpop"))
+	// }
+
+	// keyList := make([]string, 0, len(args)-1)
+	// timeout := args[len(args)-1]
+
 	return nil, nil
 }
