@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ const (
 	INTEGER = ':'
 	BULK    = '$'
 	ARRAY   = '*'
+	DOUBLE  = ','
 )
 
 // 定义类型常量
@@ -30,6 +32,7 @@ const (
 	TINTEGER = "integer"
 	TNULL    = "null"
 	TERROR   = "error"
+	TDOUBLE  = "double"
 )
 
 type Value struct {
@@ -38,6 +41,7 @@ type Value struct {
 	bulk    string
 	str     string
 	integer int
+	double  float64
 }
 
 type Resp struct {
@@ -100,6 +104,8 @@ func (r *Resp) Read() (*Value, error) {
 		return r.readBulk()
 	case ARRAY:
 		return r.readArray()
+	case DOUBLE:
+		return r.readDouble()
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown type: %v", string(typ)))
 	}
@@ -167,6 +173,26 @@ func (r *Resp) readArray() (*Value, error) {
 	return v, nil
 }
 
+// ,1.23\r\n
+func (r *Resp) readDouble() (*Value, error) {
+	v := new(Value)
+	v.typ = TDOUBLE
+
+	data, _, err := r.readLine()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	val, err := strconv.ParseFloat(string(data), 64)
+	if err != nil {
+		return nil, errors.New("ERR invalid float format")
+	}
+
+	v.double = val
+
+	return v, nil
+}
+
 // Marshal 将Value结构体转为resp格式 用于客户端响应
 func (v *Value) Marshal() []byte {
 	switch v.typ {
@@ -182,6 +208,8 @@ func (v *Value) Marshal() []byte {
 		return v.marshalNull()
 	case TERROR:
 		return v.marshalError()
+	case TDOUBLE:
+		return v.marshalDouble()
 	default:
 		return nil
 	}
@@ -246,6 +274,34 @@ func (v *Value) marshalError() []byte {
 	res := make([]byte, 0, 16)
 	res = append(res, ERROR)
 	res = append(res, v.str...)
+	res = append(res, '\r', '\n')
+	return res
+}
+
+// ,[<+|->]<integral>[.<fractional>][<E|e>[sign]<exponent>]\r\n
+func (v *Value) marshalDouble() []byte {
+	// 正无穷大、负无穷大和 NaN 值编码如下：
+	// ,inf\r\n
+	// ,-inf\r\n
+	// ,nan\r\n
+	if math.IsInf(v.double, 1) {
+		return []byte(",inf\r\n")
+	}
+	if math.IsInf(v.double, -1) {
+		return []byte(",-inf\r\n")
+	}
+	if math.IsNaN(v.double) {
+		return []byte(",nan\r\n")
+	}
+
+	res := make([]byte, 0, 32)
+	res = append(res, DOUBLE)
+	if v.double > 0 {
+		res = append(res, '+')
+	}
+
+	// AppendFloat 会自动设置负号
+	res = strconv.AppendFloat(res, v.double, 'g', -1, 64)
 	res = append(res, '\r', '\n')
 	return res
 }

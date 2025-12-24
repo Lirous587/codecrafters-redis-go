@@ -12,6 +12,9 @@ import (
 type command string
 
 const (
+	// TCODE 用于临时测试某个resp协议编码
+	TCODE command = "TCODE"
+
 	PING   command = "PING"
 	ECHO   command = "ECHO"
 	SET    command = "SET"
@@ -21,6 +24,7 @@ const (
 	LRANGE command = "LRANGE"
 	LLEN   command = "LLEN"
 	LPOP   command = "LPOP"
+	BLPOP  command = "BLPOP"
 )
 
 type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
@@ -29,6 +33,7 @@ func NewHandler() handlers {
 	store := store.NewKVStore()
 
 	return handlers{
+		TCODE:  handleTCODE,
 		PING:   handlePing,
 		ECHO:   handleEcho,
 		SET:    store.HandleSet,
@@ -38,6 +43,7 @@ func NewHandler() handlers {
 		LRANGE: store.HandleLRange,
 		LLEN:   store.HandleLLen,
 		LPOP:   store.HandleLPop,
+		BLPOP:  store.HandleBLPOP,
 	}
 }
 
@@ -70,4 +76,9 @@ func handleEcho(args []*protocol.Value) (*protocol.Value, error) {
 	}
 
 	return new(protocol.Value).SetBulk(args[0].Bulk()), nil
+}
+
+func handleTCODE(args []*protocol.Value) (*protocol.Value, error) {
+	magicDouble := 3.14159
+	return new(protocol.Value).SetDouble(magicDouble), nil
 }

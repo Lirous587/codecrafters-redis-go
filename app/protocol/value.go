@@ -50,6 +50,12 @@ func (v *Value) SetInteger(integer int) *Value {
 	return v
 }
 
+func (v *Value) SetDouble(double float64) *Value {
+	v.typ = TDOUBLE
+	v.double = double
+	return v
+}
+
 func (v *Value) SetError(err string) *Value {
 	v.typ = TERROR
 	v.str = err

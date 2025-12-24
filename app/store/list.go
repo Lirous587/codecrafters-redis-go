@@ -236,3 +236,16 @@ func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
 
 	return new(protocol.Value).SetArray(resList), nil
 }
+
+// HandleBLPOP
+// 当调用 BLPOP 时，如果指定的至少一个键包含非空列表，则从列表头部弹出一个元素并返回给调用者，同时返回它被弹出的 key 。
+// 键是按照给定的顺序进行检查的。假设键 list1 不存在，而 list2 和 list3 包含非空列表。考虑以下命令：
+// BLPOP list1 list2 list3 0
+// BLPOP 保证从 list2 存储的列表中返回一个元素（因为它在检查 list1 、 list2 和 list3 时是第一个非空列表）。
+// 如果指定的键都不存在， BLPOP 会阻塞连接，直到另一个客户端对其中一个键执行 LPUSH 或 RPUSH 操作。
+// 当其中一个列表出现新数据时，客户端返回解阻塞该键的键名和弹出的值。
+// 当 BLPOP 导致客户端阻塞且指定了非零超时时，如果超时到期前没有至少一个指定的键执行推送操作，客户端将解阻塞并返回一个 nil 多批量值。
+// 超时参数timeout被解释为一个双精度值，指定最大阻塞秒数。零超时可用于无限期阻塞。
+func (s *KVStore) HandleBLPOP(args []*protocol.Value) (*protocol.Value, error) {
+	return nil, nil
+}
