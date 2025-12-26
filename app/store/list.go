@@ -32,6 +32,16 @@ func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
 
 	key := args[0].Bulk()
 
+	entity, exist := s.store[key]
+	var list []string
+	if exist {
+		if entity.Type != TypeList {
+			return nil, errors.New(emsgKeyType())
+		}
+		list = entity.Data.([]string)
+	}
+	resLen := len(list) + len(args) - 1
+
 	valuesToPush := make([]string, 0, len(args)-1)
 	for i := range args[1:] {
 		valuesToPush = append(valuesToPush, args[1+i].Bulk())
@@ -59,15 +69,6 @@ func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
 		remainingValue = append(remainingValue, val)
 	}
 
-	entity, exist := s.store[key]
-
-	var list []string
-	if exist {
-		if entity.Type != TypeList {
-			return nil, errors.New(emsgKeyType())
-		}
-		list = entity.Data.([]string)
-	}
 	resList := append(remainingValue, list...)
 
 	if len(resList) == 0 {
@@ -81,7 +82,7 @@ func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
 		})
 	}
 
-	return new(protocol.Value).SetInteger(len(resList)), nil
+	return new(protocol.Value).SetInteger(resLen), nil
 }
 
 // HandleRPush
@@ -99,6 +100,18 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 	defer s.mutex.Unlock()
 
 	key := args[0].Bulk()
+
+	entity, exist := s.store[key]
+
+	var list []string
+	if exist {
+		if entity.Type != TypeList {
+			return nil, errors.New(emsgKeyType())
+		}
+		list = entity.Data.([]string)
+	}
+
+	resLen := len(list) + len(args) - 1
 
 	valuesToPush := make([]string, 0, len(args)-1)
 	for i := range args[1:] {
@@ -120,16 +133,6 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 		remainingValues = append(remainingValues, v)
 	}
 
-	entity, exist := s.store[key]
-
-	var list []string
-	if exist {
-		if entity.Type != TypeList {
-			return nil, errors.New(emsgKeyType())
-		}
-		list = entity.Data.([]string)
-	}
-
 	resList := append(list, remainingValues...)
 
 	s.rawSet(key, &Entity{
@@ -139,7 +142,7 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 		Data: resList,
 	})
 
-	return new(protocol.Value).SetInteger(len(resList)), nil
+	return new(protocol.Value).SetInteger(resLen), nil
 }
 
 // HandleLRange
