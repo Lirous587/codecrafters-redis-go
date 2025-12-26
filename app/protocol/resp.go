@@ -156,13 +156,18 @@ func (r *Resp) readArray() (*Value, error) {
 	v.typ = TARRAY
 
 	// 获取array长度
-	len, err := r.readLength()
+	length, err := r.readLength()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	v.array = make([]*Value, len)
-	for i := 0; i < len; i++ {
+	if length == -1 {
+		v.array = nil
+		return v, nil
+	}
+
+	v.array = make([]*Value, length)
+	for i := 0; i < length; i++ {
 		val, err := r.Read() // 递归调用 Read，不只是 readBulk
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -217,6 +222,10 @@ func (v *Value) Marshal() []byte {
 
 // *<number-of-elements>\r\n<element-1>...<element-n>
 func (v *Value) marshalArray() []byte {
+	if v.array == nil {
+		return []byte("*-1\r\n")
+	}
+
 	res := make([]byte, 0, 16)
 	res = append(res, ARRAY)
 	res = append(res, strconv.Itoa(len(v.array))...)
