@@ -80,3 +80,10 @@ func (v *Value) SetNullArray() *Value {
 	v.array = nil
 	return v
 }
+
+// 用于 LRANGE, LLEN 等情况
+func (v *Value) SetEmptyArray() *Value {
+	v.typ = TARRAY
+	v.array = make([]*Value, 0)
+	return v
+}

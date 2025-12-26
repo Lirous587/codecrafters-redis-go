@@ -162,7 +162,7 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 
 	entity, ok := s.store[key]
 	if !ok {
-		return new(protocol.Value).SetNullArray(), nil
+		return new(protocol.Value).SetEmptyArray(), nil
 	}
 
 	if entity.Type != TypeList {
