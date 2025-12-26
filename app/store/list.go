@@ -43,8 +43,8 @@ func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
 	resLen := len(list) + len(args) - 1
 
 	valuesToPush := make([]string, 0, len(args)-1)
-	for i := range args[1:] {
-		valuesToPush = append(valuesToPush, args[1+i].Bulk())
+	for i := len(args); i > 1; i-- {
+		valuesToPush = append(valuesToPush, args[i-1].Bulk())
 	}
 
 	// remainingValues 用于收集没有被 waiter 消费掉的值
