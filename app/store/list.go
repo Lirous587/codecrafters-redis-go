@@ -346,7 +346,11 @@ func (s *KVStore) HandleBLPOP(args []*protocol.Value) (*protocol.Value, error) {
 	// 阻塞处理
 	var timeoutCh <-chan time.Time
 	if timeout > 0 {
-		timeoutCh = time.After(time.Duration(timeout) * time.Second)
+		// 1. 把 time.Second (整数) 转成 float64
+		// 2. 乘以 timeout (float64)
+		// 3. 最后把结果转回 time.Duration
+		duration := time.Duration(timeout * float64(time.Second))
+		timeoutCh = time.After(duration)
 	}
 
 	pendingCh := make(chan ListPayload, 1)
