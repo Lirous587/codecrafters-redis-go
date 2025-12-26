@@ -24,7 +24,7 @@ type Entity struct {
 
 type KVStore struct {
 	store map[string]*Entity
-	// 用于 List 的阻塞等待
+	// 用于 List 的阻塞等待 对于一个key可能有多个连接阻塞等待 故需要用一个[]chan去处理 以此实现后续的FIFO
 	listWaiters map[string][]chan ListPayload
 	// 未来可能需要的阻塞
 	// streamWaiters map[string][]chan StreamPayload

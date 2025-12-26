@@ -18,6 +18,14 @@ func (v *Value) BulkToInteger() (int, error) {
 	return int(num), nil
 }
 
+func (v *Value) BulkToDouble() (float64, error) {
+	num, err := strconv.ParseFloat(v.bulk, 64)
+	if err != nil {
+		return 0, err
+	}
+	return float64(num), nil
+}
+
 func (v *Value) Str() string {
 	return v.str
 }

@@ -249,14 +249,10 @@ func (v *Value) marshalString() []byte {
 }
 
 // :[<+|->]<value>\r\n
+// 无须显示添加 +
 func (v *Value) marshalInteger() []byte {
 	res := make([]byte, 0, 16)
 	res = append(res, INTEGER)
-
-	// 只需处理正号即可
-	if v.integer >= 0 {
-		res = append(res, '+')
-	}
 
 	// AppendInt 会自动设置负号
 	res = strconv.AppendInt(res, int64(v.integer), 10)
@@ -279,6 +275,7 @@ func (v *Value) marshalError() []byte {
 }
 
 // ,[<+|->]<integral>[.<fractional>][<E|e>[sign]<exponent>]\r\n
+// 无须显示添加 +
 func (v *Value) marshalDouble() []byte {
 	// 正无穷大、负无穷大和 NaN 值编码如下：
 	// ,inf\r\n
@@ -296,9 +293,6 @@ func (v *Value) marshalDouble() []byte {
 
 	res := make([]byte, 0, 32)
 	res = append(res, DOUBLE)
-	if v.double > 0 {
-		res = append(res, '+')
-	}
 
 	// AppendFloat 会自动设置负号
 	res = strconv.AppendFloat(res, v.double, 'g', -1, 64)
