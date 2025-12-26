@@ -162,7 +162,7 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 
 	entity, ok := s.store[key]
 	if !ok {
-		return new(protocol.Value).SetEmptyArray(), nil
+		return new(protocol.Value).SetNullArray(), nil
 	}
 
 	if entity.Type != TypeList {
@@ -243,7 +243,7 @@ func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
 
 	entity, ok := s.rawGet(key)
 	if !ok {
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetNullBulk(), nil
 	}
 
 	if entity.Type != TypeList {
@@ -254,7 +254,7 @@ func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
 	length := len(list)
 
 	if length == 0 {
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetNullBulk(), nil
 	}
 
 	disposeList := func(resLength int) {
@@ -394,6 +394,6 @@ func (s *KVStore) HandleBLPOP(args []*protocol.Value) (*protocol.Value, error) {
 			nil
 	case <-timeoutCh:
 		// 超时处理
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetNullArray(), nil
 	}
 }

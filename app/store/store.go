@@ -162,12 +162,12 @@ func (s *KVStore) HandleGet(args []*protocol.Value) (*protocol.Value, error) {
 	entity, exist := s.Get(key)
 
 	if !exist {
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetNullBulk(), nil
 	}
 
 	str, ok := entity.Data.(string)
 	if !ok {
-		return new(protocol.Value).SetNull(), nil
+		return new(protocol.Value).SetNullBulk(), nil
 	}
 
 	return new(protocol.Value).SetBulk(str), nil

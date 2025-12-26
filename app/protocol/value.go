@@ -70,13 +70,12 @@ func (v *Value) SetError(err string) *Value {
 	return v
 }
 
-// SetNull: set null bulk string
-func (v *Value) SetNull() *Value {
+func (v *Value) SetNullBulk() *Value {
 	v.typ = TNULL
 	return v
 }
 
-func (v *Value) SetEmptyArray() *Value {
+func (v *Value) SetNullArray() *Value {
 	v.typ = TARRAY
 	v.array = nil
 	return v
