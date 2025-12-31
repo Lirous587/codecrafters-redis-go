@@ -1,6 +1,10 @@
 package protocol
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/pkg/errors"
+)
 
 func (v *Value) Array() []*Value {
 	return v.array
@@ -68,6 +72,16 @@ func (v *Value) SetError(err string) *Value {
 	v.typ = TERROR
 	v.str = err
 	return v
+}
+
+func (v *Value) Error() error {
+	if v == nil {
+		return nil
+	}
+	if v.typ != TERROR {
+		return nil
+	}
+	return errors.New(v.str)
 }
 
 func (v *Value) SetNullBulk() *Value {

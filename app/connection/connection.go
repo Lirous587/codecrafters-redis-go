@@ -73,8 +73,12 @@ func Handle(conn net.Conn) {
 
 		response, err := handler.Handle(cmd, args)
 		if err != nil {
-			// 将错误返回为 RESP 错误回复，避免 nil 传入 Writer
-			response = new(protocol.Value).SetError(fmt.Sprintf("ERR %v", err))
+			// 优先写入被指定错误
+			if resErr := response.Error(); resErr != nil {
+				response = new(protocol.Value).SetError(resErr.Error())
+			} else {
+				response = new(protocol.Value).SetError(fmt.Sprintf("ERR %v", err))
+			}
 		}
 
 		writer.Write(response)
