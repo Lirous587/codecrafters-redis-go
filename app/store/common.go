@@ -19,11 +19,13 @@ func (s *KVStore) HandleTYPE(args []*protocol.Value) (*protocol.Value, error) {
 		return new(protocol.Value).SetStr("none"), nil
 	}
 	switch entity.Type {
-	case TypeList:
-		return new(protocol.Value).SetStr("list"), nil
 	case TypeString:
 		return new(protocol.Value).SetStr("string"), nil
+	case TypeList:
+		return new(protocol.Value).SetStr("list"), nil
+	case TypeStream:
+		return new(protocol.Value).SetStr("stream"), nil
 	}
 
-	return nil, errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
+	return nil, errors.New(emsgKeyType())
 }

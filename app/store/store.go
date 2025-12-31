@@ -14,6 +14,7 @@ type ValueType int8
 const (
 	TypeString ValueType = iota
 	TypeList
+	TypeStream
 )
 
 type Entity struct {
@@ -38,7 +39,7 @@ var kvStore *KVStore
 func NewKVStore() *KVStore {
 	kvOnce.Do(func() {
 		kvStore = &KVStore{
-			store: make(map[string]*Entity),
+			store:       make(map[string]*Entity),
 			listWaiters: make(map[string][]chan ListPayload),
 		}
 
