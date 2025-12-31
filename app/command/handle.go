@@ -25,6 +25,7 @@ const (
 	LLEN   command = "LLEN"
 	LPOP   command = "LPOP"
 	BLPOP  command = "BLPOP"
+	TYPE   command = "TYPE"
 )
 
 type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
@@ -44,6 +45,7 @@ func NewHandler() handlers {
 		LLEN:   store.HandleLLen,
 		LPOP:   store.HandleLPop,
 		BLPOP:  store.HandleBLPOP,
+		TYPE:   store.HandleTYPE,
 	}
 }
 
