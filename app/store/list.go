@@ -13,7 +13,7 @@ type ListPayload struct {
 	value string
 }
 
-// HandleLPush
+// HandleLPUSH
 // 将所有指定的值插入到存储在 key 的列表头部。如果 key 不存在，则在执行推送操作之前将其创建为空列表。当 key 包含的值不是列表时，将返回错误。
 // 可以使用单个命令调用，在命令末尾指定多个参数来推送多个元素。元素会依次插入到列表头部，从最左边的元素到最右边的元素。所以例如，命令 LPUSH mylist a b c 将会生成一个列表，其中 c 是第一个元素， b 是第二个元素， a 是第三个元素。
 // 整数回复：推送操作后列表的长度。
@@ -22,7 +22,7 @@ type ListPayload struct {
 // blpop list_key 0
 // lpush list_key val
 // 这个时候lpush的返回结构将为0而不是1
-func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleLPUSH(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) < 2 {
 		return nil, errors.New(emsgArgsNumber("lpush"))
 	}
@@ -85,13 +85,13 @@ func (s *KVStore) HandleLPush(args []*protocol.Value) (*protocol.Value, error) {
 	return new(protocol.Value).SetInteger(resLen), nil
 }
 
-// HandleRPush
+// HandleRPUSH
 // 将所有指定的值插入到存储在 key 的列表尾部。
 // 如果 key 不存在，则在执行推送操作之前将其创建为空列表。
 // 当 key 包含的值不是列表时，将返回错误。
 // 整数回复：推送操作后列表的长度。
 // RPUSH 同样 遵循等待者优先原则
-func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleRPUSH(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) < 2 {
 		return nil, errors.New(emsgArgsNumber("rpush"))
 	}
@@ -149,7 +149,7 @@ func (s *KVStore) HandleRPush(args []*protocol.Value) (*protocol.Value, error) {
 // 返回存储在 key 中的列表的指定元素。偏移量 start 和 stop 是零基索引， 0 是列表的第一个元素（列表的头部）， 1 是下一个元素，以此类推。
 // 这些偏移量也可以是负数，表示从列表末尾开始的偏移量。例如， -1 是列表的最后一个元素， -2 是倒数第二个，以此类推。
 // 有count的时候始终返回array，否则返回str
-func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleLRANGE(args []*protocol.Value) (*protocol.Value, error) {
 	// lrange key start stop
 	if len(args) != 3 {
 		return nil, errors.New(emsgArgsNumber("lrange"))
@@ -192,7 +192,7 @@ func (s *KVStore) HandleLRange(args []*protocol.Value) (*protocol.Value, error) 
 	return new(protocol.Value).SetArray(resList), nil
 }
 
-func (s *KVStore) HandleLLen(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleLLEN(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) != 1 {
 		return nil, errors.New(emsgArgsNumber("llen"))
 	}
@@ -219,7 +219,7 @@ func (s *KVStore) HandleLLen(args []*protocol.Value) (*protocol.Value, error) {
 // HandleLpop
 // 移除并返回存储在 key 中的列表的第一个元素。
 // 默认情况下，该命令从列表的开头弹出一个元素。当提供可选的 count 参数时，回复将包含最多 count 个元素，具体取决于列表的长度。
-func (s *KVStore) HandleLPop(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleLPOP(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) != 1 && len(args) != 2 {
 		return nil, errors.New(emsgArgsNumber("lpop"))
 	}

@@ -166,3 +166,8 @@ func (s *KVStore) HandleXADD(args []*protocol.Value) (*protocol.Value, error) {
 
 	return new(protocol.Value).SetBulk(actualID), nil
 }
+
+// HandleXRange
+func (s *KVStore) HandleXRANGE(args []*protocol.Value) (*protocol.Value, error) {
+
+}

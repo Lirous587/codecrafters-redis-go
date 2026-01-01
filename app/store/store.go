@@ -116,7 +116,7 @@ func (s *KVStore) handleActiveDelete() {
 	}
 }
 
-func (s *KVStore) HandleSet(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleSET(args []*protocol.Value) (*protocol.Value, error) {
 	// 允许 SET key value [EX seconds | PX milliseconds]
 	if len(args) != 2 && len(args) != 4 {
 		return nil, errors.New(emsgArgsNumber("set"))
@@ -153,7 +153,7 @@ func (s *KVStore) HandleSet(args []*protocol.Value) (*protocol.Value, error) {
 	return new(protocol.Value).SetStr("OK"), nil
 }
 
-func (s *KVStore) HandleGet(args []*protocol.Value) (*protocol.Value, error) {
+func (s *KVStore) HandleGET(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) != 1 {
 		return nil, errors.New(emsgArgsNumber("get"))
 	}

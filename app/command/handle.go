@@ -27,6 +27,7 @@ const (
 	BLPOP  command = "BLPOP"
 	TYPE   command = "TYPE"
 	XADD   command = "XADD"
+	XRANGE command = "XRANGE"
 )
 
 type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
@@ -36,18 +37,19 @@ func NewHandler() handlers {
 
 	return handlers{
 		TCODE:  handleTCODE,
-		PING:   handlePing,
-		ECHO:   handleEcho,
-		SET:    store.HandleSet,
-		GET:    store.HandleGet,
-		LPUSH:  store.HandleLPush,
-		RPUSH:  store.HandleRPush,
-		LRANGE: store.HandleLRange,
-		LLEN:   store.HandleLLen,
-		LPOP:   store.HandleLPop,
+		PING:   handlePING,
+		ECHO:   handleECHO,
+		SET:    store.HandleSET,
+		GET:    store.HandleGET,
+		LPUSH:  store.HandleLPUSH,
+		RPUSH:  store.HandleRPUSH,
+		LRANGE: store.HandleLRANGE,
+		LLEN:   store.HandleLLEN,
+		LPOP:   store.HandleLPOP,
 		BLPOP:  store.HandleBLPOP,
 		TYPE:   store.HandleTYPE,
 		XADD:   store.HandleXADD,
+		XRANGE: store.HandleXRANGE,
 	}
 }
 
@@ -63,7 +65,7 @@ func (h handlers) Handle(cmd string, args []*protocol.Value) (*protocol.Value, e
 	return handler(args)
 }
 
-func handlePing(args []*protocol.Value) (*protocol.Value, error) {
+func handlePING(args []*protocol.Value) (*protocol.Value, error) {
 	switch len(args) {
 	case 0:
 		return new(protocol.Value).SetStr("PONG"), nil
@@ -74,7 +76,7 @@ func handlePing(args []*protocol.Value) (*protocol.Value, error) {
 	}
 }
 
-func handleEcho(args []*protocol.Value) (*protocol.Value, error) {
+func handleECHO(args []*protocol.Value) (*protocol.Value, error) {
 	if len(args) != 1 {
 		return nil, errors.New("ERR wrong number of arguments for 'echo' command")
 	}
