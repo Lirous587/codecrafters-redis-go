@@ -1,8 +1,10 @@
 package store
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/pkg/errors"
@@ -19,28 +21,6 @@ type Stream struct {
 	entities      []StreamEntity
 	lastTimestamp int64
 	lastSeq       int64
-}
-
-// parseStreamID 分割stream id,得到timestamp和seq
-func parseStreamID(id string) (int64, int64, error) {
-	strs := strings.Split(id, "-")
-	if len(strs) != 2 {
-		return 0, 0, errors.New("ERR Invalid stream ID specified as stream command argument")
-	}
-
-	timestampStr := strs[0]
-	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
-	if err != nil {
-		return 0, 0, errors.WithStack(err)
-	}
-
-	seqStr := strs[1]
-	seq, err := strconv.ParseInt(seqStr, 10, 64)
-	if err != nil {
-		return 0, 0, errors.WithStack(err)
-	}
-
-	return timestamp, seq, nil
 }
 
 // validateAndUpdateStreamID 验证并更新 stream 的最新 ID
@@ -71,6 +51,53 @@ func validateAndUpdateStreamID(stream *Stream, timestamp, seq int64) error {
 	stream.lastSeq = seq
 
 	return nil
+}
+
+func parseStreamIDOrAutoGen(stream *Stream, id string) (int64, int64, error) {
+	// 完全自动生成 暂不实现
+	if id == "*" {
+		timestamp := time.Now().UnixMilli()
+		seq := int64(0)
+		if timestamp == stream.lastTimestamp {
+			seq = stream.lastSeq + 1
+		}
+		return timestamp, seq, nil
+	}
+
+	strs := strings.Split(id, "-")
+	if len(strs) != 2 {
+		return 0, 0, errors.New("ERR Invalid stream ID specified as stream command argument")
+	}
+
+	timestampStr := strs[0]
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		return 0, 0, errors.WithStack(err)
+	}
+
+	// 自动生成序列号
+	// 特殊情况 timestamp为0时 seq从1开始
+	if strs[1] == "*" {
+		seq := int64(0)
+
+		switch timestamp {
+		case stream.lastTimestamp: // 如果 timestamp 与上一个相同，则递增序列号
+			seq = stream.lastSeq + 1
+		case 0: // timestamp 为 0 的特殊情况,seq 从 1 开始
+			seq = 1
+		}
+
+		return timestamp, seq, nil
+	}
+
+	// 显式指定序列号
+	seqStr := strs[1]
+	seq, err := strconv.ParseInt(seqStr, 10, 64)
+	if err != nil {
+		return 0, 0, errors.WithStack(err)
+	}
+
+	return timestamp, seq, nil
 }
 
 // HandleXADD
@@ -108,13 +135,16 @@ func (s *KVStore) HandleXADD(args []*protocol.Value) (*protocol.Value, error) {
 	}
 
 	id := args[1].Bulk()
-	timestamp, seq, err := parseStreamID(id)
+	timestamp, seq, err := parseStreamIDOrAutoGen(stream, id)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	if err := validateAndUpdateStreamID(stream, timestamp, seq); err != nil {
 		return new(protocol.Value).SetError(err.Error()), errors.WithStack(err)
 	}
+
+	// 构造实际的id
+	actualID := fmt.Sprintf("%d-%d", timestamp, seq)
 
 	streamEntity := StreamEntity{
 		timestamp: timestamp,
@@ -134,5 +164,5 @@ func (s *KVStore) HandleXADD(args []*protocol.Value) (*protocol.Value, error) {
 		Data: stream,
 	})
 
-	return new(protocol.Value).SetBulk(id), nil
+	return new(protocol.Value).SetBulk(actualID), nil
 }
