@@ -44,6 +44,17 @@ func (v *Value) SetArray(array []*Value) *Value {
 	return v
 }
 
+func (v *Value) Append(val ...*Value) *Value {
+	if v.typ != TARRAY {
+		v.typ = TARRAY
+		if v.array == nil {
+			v.array = make([]*Value, 0)
+		}
+	}
+	v.array = append(v.array, val...)
+	return v
+}
+
 func (v *Value) SetBulk(bulk string) *Value {
 	v.typ = TBULK
 	v.bulk = bulk

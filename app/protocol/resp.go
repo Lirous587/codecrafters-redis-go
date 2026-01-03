@@ -216,7 +216,7 @@ func (v *Value) Marshal() []byte {
 	case TDOUBLE:
 		return v.marshalDouble()
 	default:
-		return nil
+		return []byte(fmt.Sprintf("-ERR unknown value type: %s\r\n", v.typ))
 	}
 }
 
