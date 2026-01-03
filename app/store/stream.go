@@ -182,39 +182,44 @@ func (s *KVStore) HandleXADD(args []*protocol.Value) (*protocol.Value, error) {
 // 对于end ID 序列号默认为最大序列号
 // timestamp
 // timestamp-seq
+// 特殊符号: - 或 +
 func (h *streamHelper) parseID(str string, isStart bool) (timestamp int64, seq int64, err error) {
+	// 1. 优先处理特殊边界符号
+	if str == "-" {
+		return 0, 0, nil
+	}
+
+	if str == "+" {
+		return math.MaxInt64, math.MaxInt64, nil
+	}
+
+	// 2. 正常的解析逻辑
 	strs := strings.Split(str, "-")
 
-	var timestampStr, seqStr string
 	if len(strs) != 1 && len(strs) != 2 {
 		return 0, 0, errors.New("ERR Invalid stream ID specified as stream command argument")
 	}
 
-	timestampStr = strs[0]
-
-	if len(strs) == 2 {
-		seqStr = strs[1]
-	}
-
+	timestampStr := strs[0]
 	timestamp, err = strconv.ParseInt(timestampStr, 10, 64)
 	if err != nil {
-		return 0, 0, errors.WithStack(err)
+		return 0, 0, errors.New("ERR Invalid stream ID specified as stream command argument")
 	}
 
-	if seqStr != "" {
+	// 3. 处理包含序列号的情况 (
+	if len(strs) == 2 {
+		seqStr := strs[1]
 		seq, err = strconv.ParseInt(seqStr, 10, 64)
 		if err != nil {
-			return 0, 0, errors.WithStack(err)
+			return 0, 0, errors.New("ERR Invalid stream ID specified as stream command argument")
 		}
 		return timestamp, seq, nil
 	}
 
-	// 未设置seq
-	// start的seq设置为0
+	// 4. 未设置 seq 的情况
 	if isStart {
 		return timestamp, 0, nil
 	} else {
-		// end的seq设置为math.MaxInt64
 		return timestamp, math.MaxInt64, nil
 	}
 }
