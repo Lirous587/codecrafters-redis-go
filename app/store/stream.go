@@ -245,6 +245,31 @@ func (h *streamHelper) compareID(t1, s1, t2, s2 int64) int {
 	return 0
 }
 
+// findStartIndex 查找满足条件的起始索引
+//
+// 参数:
+//   - entities: 有序的流实体切片
+//   - startTimestamp, startSeq: 起始 ID
+//   - exclusive: true 表示排他（>），false 表示包含（>=）
+//
+// 返回: 第一个满足条件的索引位置
+func (h *streamHelper) findStartIndex(entities []StreamEntity, startTimestamp, startSeq int64, exclusive bool) int {
+	// 找到第一个大于start的索引i
+	startIndex := sort.Search(len(entities), func(i int) bool {
+		entity := entities[i]
+		ti, si := entity.timestamp, entity.seq
+
+		// 是否排他
+		if exclusive {
+			// id(i) > id(start)
+			return h.compareID(ti, si, startTimestamp, startSeq) == 1
+		}
+		// id(i) >= id(start)
+		return h.compareID(ti, si, startTimestamp, startSeq) >= 0
+	})
+	return startIndex
+}
+
 // HandleXRange
 // XRANGE some_key 1526985054069 1526985054079
 // XRANGE some_key 1526985054069-* 1526985054079-*
@@ -293,12 +318,7 @@ func (s *KVStore) HandleXRANGE(args []*protocol.Value) (*protocol.Value, error) 
 	entities := stream.entities
 
 	// 找到第一个大于start的索引i
-	startIndex := sort.Search(len(stream.entities), func(i int) bool {
-		entity := entities[i]
-		ti, si := entity.timestamp, entity.seq
-		// id(i) >= id(start)
-		return helper.compareID(ti, si, t1, s1) >= 0
-	})
+	startIndex := helper.findStartIndex(stream.entities, t1, s1, false)
 
 	result := new(protocol.Value).SetEmptyArray()
 
@@ -320,6 +340,90 @@ func (s *KVStore) HandleXRANGE(args []*protocol.Value) (*protocol.Value, error) 
 		entityArr.Append(id, fieldsArray)
 		result.Append(entityArr)
 	}
+
+	return result, nil
+}
+
+// HandleXREAD
+// XREAD [COUNT count] [BLOCK milliseconds] STREAMS key [key ...] id [id ...]
+// XREAD是排他的 意味着要从大于id的条目开始
+func (s *KVStore) HandleXREAD(args []*protocol.Value) (*protocol.Value, error) {
+	if len(args) != 3 {
+		return nil, errors.New(emsgArgsNumber("xread"))
+	}
+
+	if args[0].Bulk() != "STREAMS" {
+		return nil, errors.New("ERR XREAD requires the STREAMS option")
+	}
+
+	keys := make([]string, 0, 1)
+	// 当前只处理一个key
+	keys = append(keys, args[1].Bulk())
+	startID := args[2].Bulk()
+
+	result := new(protocol.Value).SetEmptyArray()
+
+	for _, key := range keys {
+		entity, ok := s.store[key]
+		if !ok {
+			return new(protocol.Value).SetEmptyArray(), nil
+		}
+		if entity.Type != TypeStream {
+			return nil, errors.New(emsgKeyType())
+		}
+		stream := entity.Data.(*Stream)
+		helper := new(streamHelper)
+
+		startTimestamp, startSeq, err := helper.parseID(startID, true)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		index := helper.findStartIndex(stream.entities, startTimestamp, startSeq, true)
+
+		// 如果没有找到符合条件的条目，返回空数组
+		if index >= len(stream.entities) {
+			return new(protocol.Value).SetNullArray(), nil
+		}
+
+		target := stream.entities[index]
+
+		// 构建单个条目: [id, [field1, value1, field2, value2]]
+		entryID := new(protocol.Value).SetBulk(fmt.Sprintf("%d-%d", target.timestamp, target.seq))
+
+		fieldArr := new(protocol.Value).SetEmptyArray()
+		for _, v := range target.Fields {
+			fieldArr.Append(new(protocol.Value).SetBulk(v))
+		}
+
+		// 单个条目数组: [id, fields]
+		singleEntry := new(protocol.Value).SetEmptyArray().Append(entryID, fieldArr)
+
+		// 该 key 的所有条目数组: [[id1, fields1], [id2, fields2], ...]
+		entriesArray := new(protocol.Value).SetEmptyArray().Append(singleEntry)
+
+		// 键值对: [key, entries]
+		// 键值对: [key, entries]
+		keyArr := new(protocol.Value).SetEmptyArray().Append(new(protocol.Value).SetBulk(key), entriesArray)
+
+		result.Append(keyArr)
+	}
+	// [
+	//   [
+	//     "some_key",
+	//     [
+	//       [
+	//         "1526985054079-0",
+	//         [
+	//           "temperature",
+	//           "37",
+	//           "humidity",
+	//           "94"
+	//         ]
+	//       ]
+	//     ]
+	//   ]
+	// ]
 
 	return result, nil
 }

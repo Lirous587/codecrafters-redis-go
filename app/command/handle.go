@@ -28,6 +28,7 @@ const (
 	TYPE   command = "TYPE"
 	XADD   command = "XADD"
 	XRANGE command = "XRANGE"
+	XREAD  command = "XREAD"
 )
 
 type handlers map[command]func(args []*protocol.Value) (*protocol.Value, error)
@@ -50,6 +51,7 @@ func NewHandler() handlers {
 		TYPE:   store.HandleTYPE,
 		XADD:   store.HandleXADD,
 		XRANGE: store.HandleXRANGE,
+		XREAD:  store.HandleXREAD,
 	}
 }
 
